@@ -1,0 +1,106 @@
+// 向服务器端发送请求，获取文章数据
+$.ajax({
+    type: "get",
+    url: "/categories",
+    success: function (response) {
+        console.log(response);
+        var html = template('categoryTpl', { data: response });
+        $('#category').html(html);
+    }
+});
+// 选择文件按钮绑定change事件
+$('#feature').on('change', function () {
+    // 获取选择的文件
+    var file = this.files[0];
+    // 创建formData对象实现二进制文件上传
+    var formData = new FormData();
+    // 将选择的文件追加到formData对象中
+    formData.append('cover', file);
+    // 实现文章封面上传功能
+    $.ajax({
+        type: "post",
+        url: "/upload",
+        data: formData,
+        // 不要处理data属性对应的参数
+        processData: false,
+        // 不要设置参数类型
+        contentType: false,
+        success: function (response) {
+            // console.log(response);
+            $('#thumbnail').val(response[0].cover);
+        }
+    });
+})
+// 为添加文章表单绑定提交事件
+$('#addForm').on('submit', function (e) {
+    // 阻止表单默认行为
+    e.preventDefault();
+    // 获取管理员在表单中输入的内容
+    var formData = $(this).serialize();
+    // 向服务器端发送请求 实现添加文章功能
+    $.ajax({
+        type: 'post',
+        url: '/posts',
+        data: formData,
+        success: function () {
+            // 文章添加成功 跳转到文章列表页面
+            location.href = '/admin/posts.html';
+        }
+    })
+
+});
+
+// 获取浏览器地址栏中的id
+var id = getUrlParams('id');
+// 当前是修改文章操作
+if (id != -1) {
+    // 根据id获取文章的详细信息
+    $.ajax({
+        type: "get",
+        url: "/posts/" + id,
+        success: function (response) {
+            $.ajax({
+                type: "get",
+                url: "/categories",
+                success: function (categories) {
+                    response.categories = categories;
+                    console.log(response);
+                    var html = template('modifyTpl', response);
+                    console.log(html);
+                    $('#parentBox').html(html);
+                }
+            });
+        }
+    });
+}
+// 判断是添加操作还是编辑操作
+// 从浏览器的地址栏中获取查询参数
+function getUrlParams(name) {
+    var params = location.search.substr(1).split('&');
+    // 循环数据
+    for (var i = 0; i < params.length; i++) {
+        var temp = params[i].split("=");
+        if (temp[0] == name) {
+            return temp[1];
+        }
+    }
+    return -1;
+}
+// 为修改文章信息表单绑定提交事件（事件委托）
+$('#parentBox').on('submit', '#modifyForm', function (e) {
+    // 阻止表单默认提交行为
+    e.preventDefault();
+    // 获取表单中输入的内容
+    var formData = $(this).serialize();
+    // 获取要修改的文章的id
+    var id = $(this).attr('data-id');
+    // 实现修改文章功能
+    $.ajax({
+        type: "put",
+        url: "/posts/" + id,
+        data: formData,
+        success: function () {
+            location.href = '/admin/posts.html'
+        }
+    });
+})
